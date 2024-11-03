@@ -3,19 +3,17 @@ package com.example.photo_blog_service;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -35,13 +33,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private static final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
+    private static final int PICK_IMAGE_REQUEST = 1;
     ImageView imgView;
     TextView textView;
     String site_url = "http://10.0.2.2:8000";
-    JSONObject post_json;
-    String imageUrl = null;
-    Bitmap bmImg = null;
+    Bitmap selectedBitmap = null;
 
     CloadImage taskDownload;
     PutPost taskUpload;
@@ -50,8 +46,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        imgView = (ImageView) findViewById(R.id.imgView);
-        textView = (TextView)findViewById(R.id.textView);
+        imgView = findViewById(R.id.imgView);
+        textView = findViewById(R.id.textView);
     }
 
     public void onClickDownload(View v) {
@@ -68,6 +64,29 @@ public class MainActivity extends AppCompatActivity {
         startActivityForResult(intent, PICK_IMAGE_REQUEST);
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            Uri imageUri = data.getData();
+            try {
+                selectedBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
+                imgView.setImageBitmap(selectedBitmap);
+
+                // 이미지 업로드 시작
+                if (taskUpload != null && taskUpload.getStatus() == AsyncTask.Status.RUNNING) {
+                    taskUpload.cancel(true);
+                }
+                taskUpload = new PutPost(selectedBitmap);
+                taskUpload.execute(site_url + "/api_root/Post/");
+            } catch (IOException e) {
+                e.printStackTrace();
+                Toast.makeText(this, "이미지 선택 오류", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
     private class CloadImage extends AsyncTask<String, Integer, List<Bitmap>> {
         @Override
         protected List<Bitmap> doInBackground(String... urls) {
@@ -81,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(3000);
                 conn.setReadTimeout(3000);
+
                 int responseCode = conn.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     InputStream is = conn.getInputStream();
@@ -91,18 +111,24 @@ public class MainActivity extends AppCompatActivity {
                         result.append(line);
                     }
                     is.close();
+
                     String strJson = result.toString();
                     JSONArray aryJson = new JSONArray(strJson);
-                    // 배열 내 모든 이미지 다운로드
+
                     for (int i = 0; i < aryJson.length(); i++) {
-                        post_json = (JSONObject) aryJson.get(i);
-                        imageUrl = post_json.getString("image");
-                        if (!imageUrl.equals("")) {
+                        JSONObject postJson = (JSONObject) aryJson.get(i);
+                        String imageUrl = postJson.getString("image");
+                        if (!imageUrl.isEmpty()) {
+                            // Replace "127.0.0.1" with "10.0.2.2" for the emulator
+                            imageUrl = imageUrl.replace("127.0.0.1", "10.0.2.2");
+                            Log.d("ImageURL", "Updated Image URL: " + imageUrl); // 변경된 URL 확인
+
                             URL myImageUrl = new URL(imageUrl);
                             conn = (HttpURLConnection) myImageUrl.openConnection();
                             InputStream imgStream = conn.getInputStream();
+
                             Bitmap imageBitmap = BitmapFactory.decodeStream(imgStream);
-                            bitmapList.add(imageBitmap); // 이미지 리스트에 추가
+                            bitmapList.add(imageBitmap);
                             imgStream.close();
                         }
                     }
@@ -115,6 +141,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(List<Bitmap> images) {
+            Log.d("CloadImage", "Number of images loaded: " + images.size());
             if (images.isEmpty()) {
                 textView.setText("불러올 이미지가 없습니다.");
             } else {
@@ -128,28 +155,52 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class PutPost extends AsyncTask<String, Void, String> {
+        private Bitmap bitmap;
+
+        public PutPost(Bitmap bitmap) {
+            this.bitmap = bitmap;
+        }
+
         @Override
         protected String doInBackground(String... urls) {
             String result = "Upload Failed";
             try {
                 String apiUrl = urls[0];
-                String token = "b6dad56ab6d96772db341385eb7106b823e4b2ab"; // 인증 토큰
+                String token = "b6dad56ab6d96772db341385eb7106b823e4b2ab";
                 URL urlAPI = new URL(apiUrl);
                 HttpURLConnection conn = (HttpURLConnection) urlAPI.openConnection();
 
                 conn.setRequestProperty("Authorization", "Token " + token);
                 conn.setRequestMethod("POST");
-                conn.setDoOutput(true); // POST 요청으로 서버에 데이터 전송
+                conn.setDoOutput(true);
                 conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=boundary");
 
-                // ImageView에서 현재 이미지 가져오기
-                Bitmap bitmap = ((BitmapDrawable) imgView.getDrawable()).getBitmap();
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
                 byte[] imageData = byteArrayOutputStream.toByteArray();
 
-                // multipart/form-data 형식으로 이미지 전송
                 DataOutputStream outputStream = new DataOutputStream(conn.getOutputStream());
+                outputStream.writeBytes("--boundary\r\n");
+                outputStream.writeBytes("Content-Disposition: form-data; name=\"title\"\r\n\r\n");
+                outputStream.writeBytes("제목\r\n");
+
+                outputStream.writeBytes("--boundary\r\n");
+                outputStream.writeBytes("Content-Disposition: form-data; name=\"text\"\r\n\r\n");
+                outputStream.writeBytes("API 내용\r\n");
+
+                outputStream.writeBytes("--boundary\r\n");
+                outputStream.writeBytes("Content-Disposition: form-data; name=\"author\"\r\n\r\n");
+                outputStream.writeBytes("1\r\n");
+
+                outputStream.writeBytes("--boundary\r\n");
+                outputStream.writeBytes("Content-Disposition: form-data; name=\"created_date\"\r\n\r\n");
+                outputStream.writeBytes("2022-06-07T18:34:00+09:00\r\n");
+
+                outputStream.writeBytes("--boundary\r\n");
+                outputStream.writeBytes("Content-Disposition: form-data; name=\"published_date\"\r\n\r\n");
+                outputStream.writeBytes("2022-06-07T18:34:00+09:00\r\n");
+
+// 이미지 전송
                 outputStream.writeBytes("--boundary\r\n");
                 outputStream.writeBytes("Content-Disposition: form-data; name=\"image\"; filename=\"upload.jpg\"\r\n");
                 outputStream.writeBytes("Content-Type: image/jpeg\r\n\r\n");
@@ -159,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
                 outputStream.close();
 
                 int responseCode = conn.getResponseCode();
-                if (responseCode == HttpURLConnection.HTTP_OK) {
+                if (responseCode == HttpURLConnection.HTTP_OK || responseCode == HttpURLConnection.HTTP_CREATED) {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                     StringBuilder response = new StringBuilder();
                     String line;
@@ -167,7 +218,9 @@ public class MainActivity extends AppCompatActivity {
                         response.append(line);
                     }
                     reader.close();
-                    result = response.toString();
+                    result = "Upload Successful";
+                } else {
+                    result = "Upload Failed with response code: " + responseCode;
                 }
 
             } catch (IOException e) {
@@ -178,10 +231,10 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(String result) {
-            if (result.equals("Upload Failed")) {
-                textView.setText("이미지 업로드 실패!");
-            } else {
+            if ("Upload Successful".equals(result)) {
                 textView.setText("이미지 업로드 성공!");
+            } else {
+                textView.setText("이미지 업로드 실패!");
             }
         }
     }

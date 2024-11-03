@@ -1,6 +1,7 @@
 package com.example.photo_blog_service;
 
 import android.graphics.Bitmap;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,6 +29,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     public void onBindViewHolder(ImageViewHolder holder, int position) {
         // 해당 위치의 이미지를 뷰에 설정
         Bitmap bitmap = imageList.get(position);
+        Log.d("ImageAdapter", "Setting image at position " + position + ", Bitmap size: " + bitmap.getWidth() + "x" + bitmap.getHeight());
         holder.imageView.setImageBitmap(bitmap);
     }
 
