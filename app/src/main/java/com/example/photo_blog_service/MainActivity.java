@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PICK_IMAGE_REQUEST = 1;
     ImageView imgView;
     TextView textView;
-    String site_url = "http://10.0.2.2:8000";
+    String site_url = "http://rhxfkg.pythonanywhere.com";
     Bitmap selectedBitmap = null;
 
     CloadImage taskDownload;
