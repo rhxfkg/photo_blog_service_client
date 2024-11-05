@@ -1,6 +1,7 @@
 package com.example.photo_blog_service;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -60,26 +61,27 @@ public class MainActivity extends AppCompatActivity {
         textView = findViewById(R.id.textView);
         recyclerView = findViewById(R.id.recyclerView);
         Button btnFavoriteList = findViewById(R.id.btnFavoriteList);
-        // 다크모드 전환 버튼 초기화
-        Button darkModeButton = findViewById(R.id.darkModeButton);
-        darkModeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                toggleDarkMode(darkModeButton);
-            }
-        });
+        // SharedPreferences에서 다크 모드 상태를 가져오기
+        SharedPreferences prefs = getSharedPreferences("settings", MODE_PRIVATE);
+        isDarkMode = prefs.getBoolean("isDarkMode", false);
+        // 다크 모드 상태에 따라 배경 색상 설정
+        if (isDarkMode) {
+            findViewById(R.id.main_layout).setBackgroundColor(Color.BLACK);
+        } else {
+            findViewById(R.id.main_layout).setBackgroundColor(Color.WHITE);
+        }
     }
 
-    // 다크모드 전환을 처리하는 메서드
-    private void toggleDarkMode(Button darkModeButton) {
-        if (isDarkMode) {
-            findViewById(R.id.main_layout).setBackgroundColor(Color.WHITE); // 라이트 모드 배경색
-            darkModeButton.setText("다크모드");
-        } else {
-            findViewById(R.id.main_layout).setBackgroundColor(Color.BLACK); // 다크 모드 배경색
-            darkModeButton.setText("라이트모드");
-        }
-        isDarkMode = !isDarkMode; // 상태 반전
+    public void onClickDarkMode(View v) {
+        isDarkMode = !isDarkMode;
+
+        // 다크 모드 상태에 따라 배경색 변경
+        findViewById(R.id.main_layout).setBackgroundColor(isDarkMode ? Color.BLACK : Color.WHITE);
+
+        // 상태 저장
+        SharedPreferences.Editor editor = getSharedPreferences("settings", MODE_PRIVATE).edit();
+        editor.putBoolean("isDarkMode", isDarkMode);
+        editor.apply();
     }
 
     public void onClickDownload(View v) {
