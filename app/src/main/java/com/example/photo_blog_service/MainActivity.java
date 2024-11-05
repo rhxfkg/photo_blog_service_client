@@ -40,6 +40,9 @@ public class MainActivity extends AppCompatActivity {
     private List<Post> postList = new ArrayList<>();
     private RecyclerView recyclerView;
     private ImageAdapter imageAdapter;
+    private String title;
+    private String text;
+
     String site_url = "http://10.0.2.2:8000";
     Bitmap selectedBitmap = null;
 
@@ -155,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
 
                             Bitmap imageBitmap = BitmapFactory.decodeStream(imgStream);
 
-                            postList.add(new Post(postId, imageBitmap, isFavorited));
+                            postList.add(new Post(postId, imageBitmap, title, text, isFavorited));
                             imgStream.close();
                         }
                     }

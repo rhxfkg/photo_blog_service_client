@@ -2,6 +2,7 @@
 package com.example.photo_blog_service;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -40,6 +41,15 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
             post.setFavorited(!post.isFavorited());  // 즐겨찾기 상태 반전
             notifyItemChanged(position);
         });
+
+        holder.editButton.setOnClickListener(v -> {
+            Intent intent = new Intent(context, EditActivity.class);
+            intent.putExtra("postId", post.getId());
+            intent.putExtra("title", post.getTitle());
+            intent.putExtra("text", post.getText());
+            intent.putExtra("image", post.getImage()); // Assuming Post has a method to get Bitmap
+            context.startActivity(intent);
+        });
     }
 
     @Override
@@ -50,11 +60,14 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     public static class ImageViewHolder extends RecyclerView.ViewHolder {
         ImageView imageView;
         ImageButton favoriteButton;
+        ImageButton editButton;
 
         public ImageViewHolder(View itemView) {
             super(itemView);
             imageView = itemView.findViewById(R.id.imageViewItem);
             favoriteButton = itemView.findViewById(R.id.favoriteButton);
+            editButton = itemView.findViewById(R.id.editButton);
+
         }
     }
 }

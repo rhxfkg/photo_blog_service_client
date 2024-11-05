@@ -11,12 +11,27 @@
         android:layout_height="200dp"
         android:scaleType="centerCrop" />
 
-    <ImageButton
-        android:id="@+id/favoriteButton"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:layout_gravity="end"
-        android:padding="8dp"
-        android:src="@drawable/ic_favorite_border" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <!-- New Edit Button -->
+        <ImageButton
+            android:id="@+id/editButton"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_edit" /> <!-- Replace with your edit icon -->
+
+        <ImageButton
+            android:id="@+id/favoriteButton"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="end"
+            android:src="@drawable/ic_favorite_border" />
+
+    </LinearLayout>
 
 </LinearLayout>

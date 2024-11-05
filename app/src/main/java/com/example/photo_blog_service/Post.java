@@ -8,11 +8,15 @@ import android.os.Parcelable;
 public class Post implements Parcelable {
     private int id;
     private Bitmap image;
+    private String title;  // Add title field
+    private String text;   // Add text field
     private boolean isFavorited;
 
-    public Post(int id, Bitmap image, boolean isFavorited) {
+    public Post(int id, Bitmap image, String title, String text, boolean isFavorited) {
         this.id = id;
         this.image = image;
+        this.title = title;
+        this.text = text;
         this.isFavorited = isFavorited;
     }
 
@@ -52,6 +56,14 @@ public class Post implements Parcelable {
 
     public Bitmap getImage() {
         return image;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getText() {
+        return text;
     }
 
     public boolean isFavorited() {
