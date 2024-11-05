@@ -12,6 +12,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -36,6 +37,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int PICK_IMAGE_REQUEST = 1;
     ImageView imgView;
     TextView textView;
+    private List<Post> postList = new ArrayList<>();
+    private RecyclerView recyclerView;
+    private ImageAdapter imageAdapter;
     String site_url = "http://10.0.2.2:8000";
     Bitmap selectedBitmap = null;
 
@@ -48,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         imgView = findViewById(R.id.imgView);
         textView = findViewById(R.id.textView);
+        recyclerView = findViewById(R.id.recyclerView);
+        Button btnFavoriteList = findViewById(R.id.btnFavoriteList);
     }
 
     public void onClickDownload(View v) {
@@ -62,6 +68,19 @@ public class MainActivity extends AppCompatActivity {
     public void onClickUpload(View v) {
         Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         startActivityForResult(intent, PICK_IMAGE_REQUEST);
+    }
+
+    public void onClickFavoriteList(View v) {
+        ArrayList<Post> favoritePosts = new ArrayList<>();
+        Log.d("PostListSize", "postList size: " + postList.size());
+        for (Post post : postList) {
+            if (post.isFavorited()) {
+                favoritePosts.add(post);
+            }
+        }
+        Intent intent = new Intent(MainActivity.this, FavoriteListActivity.class);
+        intent.putParcelableArrayListExtra("favoritePosts", favoritePosts); // favoritePosts 추가
+        startActivity(intent);
     }
 
     @Override
@@ -87,10 +106,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private class CloadImage extends AsyncTask<String, Integer, List<Bitmap>> {
+    // MainActivity.java
+
+    private class CloadImage extends AsyncTask<String, Integer, List<Post>> {
         @Override
-        protected List<Bitmap> doInBackground(String... urls) {
-            List<Bitmap> bitmapList = new ArrayList<>();
+        protected List<Post> doInBackground(String... urls) {
+            List<Post> postList = new ArrayList<>();
             try {
                 String apiUrl = urls[0];
                 String token = "b6dad56ab6d96772db341385eb7106b823e4b2ab";
@@ -113,22 +134,28 @@ public class MainActivity extends AppCompatActivity {
                     is.close();
 
                     String strJson = result.toString();
+                    Log.d("API Response", strJson);
+
                     JSONArray aryJson = new JSONArray(strJson);
 
                     for (int i = 0; i < aryJson.length(); i++) {
                         JSONObject postJson = (JSONObject) aryJson.get(i);
                         String imageUrl = postJson.getString("image");
+                        boolean isFavorited = postJson.optBoolean("is_favorited", false);
+                        int postId = postJson.getInt("id");
+                        Log.d("Updated Image URL1", "imageUrl: " + imageUrl + ", length: " + imageUrl.length());
+
                         if (!imageUrl.isEmpty()) {
-                            // Replace "127.0.0.1" with "10.0.2.2" for the emulator
+                            Log.d("Updated Image URL2", imageUrl);
                             imageUrl = imageUrl.replace("127.0.0.1", "10.0.2.2");
-                            Log.d("ImageURL", "Updated Image URL: " + imageUrl); // 변경된 URL 확인
 
                             URL myImageUrl = new URL(imageUrl);
                             conn = (HttpURLConnection) myImageUrl.openConnection();
                             InputStream imgStream = conn.getInputStream();
 
                             Bitmap imageBitmap = BitmapFactory.decodeStream(imgStream);
-                            bitmapList.add(imageBitmap);
+
+                            postList.add(new Post(postId, imageBitmap, isFavorited));
                             imgStream.close();
                         }
                     }
@@ -136,23 +163,70 @@ public class MainActivity extends AppCompatActivity {
             } catch (IOException | JSONException e) {
                 e.printStackTrace();
             }
-            return bitmapList;
+            return postList;
         }
 
         @Override
-        protected void onPostExecute(List<Bitmap> images) {
-            Log.d("CloadImage", "Number of images loaded: " + images.size());
-            if (images.isEmpty()) {
+        protected void onPostExecute(List<Post> posts) {
+            if (posts.isEmpty()) {
                 textView.setText("불러올 이미지가 없습니다.");
             } else {
                 textView.setText("이미지 로드 성공!");
+                postList.addAll(posts);  // 다운로드된 이미지 리스트를 postList에 추가
                 RecyclerView recyclerView = findViewById(R.id.recyclerView);
-                ImageAdapter adapter = new ImageAdapter(images);
+                ImageAdapter adapter = new ImageAdapter(posts, MainActivity.this);
                 recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
                 recyclerView.setAdapter(adapter);
             }
         }
     }
+
+    public void toggleFavorite(int postId) {
+        new ToggleFavoriteTask(postId).execute(site_url + "/post/" + postId + "/toggle_favorite/");
+    }
+
+    private class ToggleFavoriteTask extends AsyncTask<String, Void, Boolean> {
+        private int postId;
+
+        public ToggleFavoriteTask(int postId) {
+            this.postId = postId;
+        }
+
+        @Override
+        protected Boolean doInBackground(String... urls) {
+            try {
+                URL urlAPI = new URL(urls[0]);
+                HttpURLConnection conn = (HttpURLConnection) urlAPI.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Authorization", "Token " + "b6dad56ab6d96772db341385eb7106b823e4b2ab");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    reader.close();
+                    JSONObject jsonResponse = new JSONObject(response.toString());
+                    return jsonResponse.getBoolean("is_favorited");
+                }
+            } catch (IOException | JSONException e) {
+                e.printStackTrace();
+            }
+            return false;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean isFavorited) {
+            // UI 업데이트
+            Toast.makeText(MainActivity.this, isFavorited ? "즐겨찾기 추가됨" : "즐겨찾기 취소됨", Toast.LENGTH_SHORT).show();
+        }
+    }
+
 
     private class PutPost extends AsyncTask<String, Void, String> {
         private Bitmap bitmap;
