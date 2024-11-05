@@ -4,6 +4,7 @@ package com.example.photo_blog_service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,6 +51,27 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
             intent.putExtra("image", post.getImage()); // Assuming Post has a method to get Bitmap
             context.startActivity(intent);
         });
+
+        // New download button click listener
+        holder.downloadButton.setOnClickListener(v -> {
+            downloadImageToGallery(post.getImage());
+            Toast.makeText(context, "Image saved to gallery", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    // Helper method to save image to gallery
+    private void downloadImageToGallery(Bitmap bitmap) {
+        String savedImageURL = MediaStore.Images.Media.insertImage(
+                context.getContentResolver(),
+                bitmap,
+                "DownloadedImage",
+                "Image downloaded from app"
+        );
+
+        // Optional: Check if the image was saved successfully
+        if (savedImageURL == null) {
+            Toast.makeText(context, "Failed to save image", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -61,13 +83,14 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         ImageView imageView;
         ImageButton favoriteButton;
         ImageButton editButton;
+        ImageButton downloadButton;
 
         public ImageViewHolder(View itemView) {
             super(itemView);
             imageView = itemView.findViewById(R.id.imageViewItem);
             favoriteButton = itemView.findViewById(R.id.favoriteButton);
             editButton = itemView.findViewById(R.id.editButton);
-
+            downloadButton = itemView.findViewById(R.id.downloadButton);
         }
     }
 }

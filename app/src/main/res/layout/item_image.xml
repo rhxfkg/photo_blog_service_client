@@ -32,6 +32,14 @@
             android:layout_gravity="end"
             android:src="@drawable/ic_favorite_border" />
 
+        <!-- New download button -->
+        <ImageButton
+            android:id="@+id/downloadButton"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_download" />
+
     </LinearLayout>
 
 </LinearLayout>

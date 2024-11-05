@@ -3,6 +3,7 @@ package com.example.photo_blog_service;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -48,6 +49,8 @@ public class MainActivity extends AppCompatActivity {
 
     CloadImage taskDownload;
     PutPost taskUpload;
+    // 다크모드 상태를 저장하는 변수
+    private boolean isDarkMode = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,6 +60,26 @@ public class MainActivity extends AppCompatActivity {
         textView = findViewById(R.id.textView);
         recyclerView = findViewById(R.id.recyclerView);
         Button btnFavoriteList = findViewById(R.id.btnFavoriteList);
+        // 다크모드 전환 버튼 초기화
+        Button darkModeButton = findViewById(R.id.darkModeButton);
+        darkModeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                toggleDarkMode(darkModeButton);
+            }
+        });
+    }
+
+    // 다크모드 전환을 처리하는 메서드
+    private void toggleDarkMode(Button darkModeButton) {
+        if (isDarkMode) {
+            findViewById(R.id.main_layout).setBackgroundColor(Color.WHITE); // 라이트 모드 배경색
+            darkModeButton.setText("다크모드");
+        } else {
+            findViewById(R.id.main_layout).setBackgroundColor(Color.BLACK); // 다크 모드 배경색
+            darkModeButton.setText("라이트모드");
+        }
+        isDarkMode = !isDarkMode; // 상태 반전
     }
 
     public void onClickDownload(View v) {

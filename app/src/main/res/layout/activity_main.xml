@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -15,7 +16,7 @@
         <Button
             android:id="@+id/btn_load"
             android:layout_width="0dp"
-            android:layout_height="50dp"
+            android:layout_height="100dp"
             android:layout_weight="1"
             android:onClick="onClickDownload"
             android:text="동기화" />
@@ -23,18 +24,26 @@
         <Button
             android:id="@+id/btn_save"
             android:layout_width="0dp"
-            android:layout_height="50dp"
+            android:layout_height="100dp"
             android:layout_weight="1"
             android:onClick="onClickUpload"
-            android:text="새로운 이미지 게시" />
+            android:text="이미지 추가" />
 
         <Button
             android:id="@+id/btnFavoriteList"
             android:layout_width="0dp"
-            android:layout_height="50dp"
+            android:layout_height="100dp"
             android:layout_weight="1"
             android:onClick="onClickFavoriteList"
-            android:text="즐겨찾기 목록 보기" />
+            android:text="즐겨찾기 목록" />
+
+        <Button
+            android:id="@+id/darkModeButton"
+            android:layout_width="0dp"
+            android:layout_height="100dp"
+            android:layout_weight="1"
+            android:onClick="onClickDarkMode"
+            android:text="다크 모드" />
     </LinearLayout>
 
     <TextView
