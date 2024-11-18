@@ -31,6 +31,7 @@
         </activity>
         <activity android:name=".FavoriteListActivity" />
         <activity android:name=".EditActivity" />
+        <activity android:name=".SearchResultsActivity" />
 
     </application>
 

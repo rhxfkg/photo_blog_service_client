@@ -10,7 +10,10 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -60,6 +63,12 @@ public class MainActivity extends AppCompatActivity {
         imgView = findViewById(R.id.imgView);
         textView = findViewById(R.id.textView);
         recyclerView = findViewById(R.id.recyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        // 빈 리스트로 ImageAdapter 초기화
+        postList = new ArrayList<>(); // postList가 null이 아닌 빈 리스트로 초기화
+        imageAdapter = new ImageAdapter(postList, this);
+        recyclerView.setAdapter(imageAdapter);
         Button btnFavoriteList = findViewById(R.id.btnFavoriteList);
         // SharedPreferences에서 다크 모드 상태를 가져오기
         SharedPreferences prefs = getSharedPreferences("settings", MODE_PRIVATE);
@@ -69,6 +78,47 @@ public class MainActivity extends AppCompatActivity {
             findViewById(R.id.main_layout).setBackgroundColor(Color.BLACK);
         } else {
             findViewById(R.id.main_layout).setBackgroundColor(Color.WHITE);
+        }
+
+        EditText searchEditText = findViewById(R.id.searchEditText);
+        // 엔터 키 이벤트 처리
+        searchEditText.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                    (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN)) {
+
+                // 검색어 가져오기
+                String query = searchEditText.getText().toString().trim();
+
+                // 검색 기능 실행
+                filterImages(query);
+
+                return true; // 이벤트 처리 완료
+            }
+            return false; // 다른 기본 동작 실행
+        });
+    }
+
+    private void filterImages(String query) {
+        if (postList == null || postList.isEmpty()) {
+            Toast.makeText(this, "검색할 이미지가 없습니다.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        List<Post> filteredList = new ArrayList<>();
+        for (Post post : postList) {
+            String title = post.getTitle();
+            if (title != null && title.contains(query)) {
+                filteredList.add(post);
+            }
+        }
+
+        if (filteredList.isEmpty()) {
+            Toast.makeText(this, "검색 결과가 없습니다.", Toast.LENGTH_SHORT).show();
+        } else {
+            // 검색 결과를 새로운 화면으로 전달
+            Intent intent = new Intent(MainActivity.this, SearchResultsActivity.class);
+            intent.putParcelableArrayListExtra("searchResults", new ArrayList<>(filteredList));
+            startActivity(intent);
         }
     }
 
@@ -171,6 +221,8 @@ public class MainActivity extends AppCompatActivity {
                         String imageUrl = postJson.getString("image");
                         boolean isFavorited = postJson.optBoolean("is_favorited", false);
                         int postId = postJson.getInt("id");
+                        String title = postJson.optString("title", ""); // JSON에서 title 추출
+                        String text = postJson.optString("text", "");  // JSON에서 text 추출
                         Log.d("Updated Image URL1", "imageUrl: " + imageUrl + ", length: " + imageUrl.length());
 
                         if (!imageUrl.isEmpty()) {

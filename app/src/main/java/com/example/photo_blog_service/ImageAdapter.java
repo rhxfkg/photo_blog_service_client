@@ -25,6 +25,12 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         this.context = context;
     }
 
+    public void updateData(List<Post> newList) {
+        this.postList = newList;
+        notifyDataSetChanged();
+    }
+
+
     @Override
     public ImageViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_image, parent, false);
