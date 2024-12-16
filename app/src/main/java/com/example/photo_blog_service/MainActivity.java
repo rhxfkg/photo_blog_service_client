@@ -1,12 +1,15 @@
 package com.example.photo_blog_service;
 
+import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -20,6 +23,8 @@ import android.widget.Toast;
 import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -60,6 +65,26 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.d("PermissionCheck", "Already has permission: " +
+                (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED));
+
+        // 권한 확인 및 요청
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES)
+                    != PackageManager.PERMISSION_GRANTED) {
+                Log.d("PermissionCheckA", "Requesting permission...");
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_MEDIA_IMAGES}, 100);
+            }
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                Log.d("PermissionCheckB", "Requesting permission...");
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 100);
+            }
+        }
         imgView = findViewById(R.id.imgView);
         textView = findViewById(R.id.textView);
         recyclerView = findViewById(R.id.recyclerView);
@@ -144,8 +169,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickUpload(View v) {
-        Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        startActivityForResult(intent, PICK_IMAGE_REQUEST);
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        startActivityForResult(Intent.createChooser(intent, "이미지 선택"), PICK_IMAGE_REQUEST);
     }
 
     public void onClickFavoriteList(View v) {
@@ -163,27 +189,54 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.d("onActivityResult", "requestCode: " + requestCode + ", resultCode: " + resultCode);
+        Log.d("onActivityResult", "Data: " + (data != null ? data.toString() : "null"));
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            Uri imageUri = data.getData();
-            try {
-                selectedBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
-                imgView.setImageBitmap(selectedBitmap);
+        if (requestCode == PICK_IMAGE_REQUEST) {
+            Log.d("onActivityResult", "requestCode: " + requestCode + ", resultCode: " + resultCode);
+            if (data == null) Log.d("AA", "BB");
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                Uri imageUri = data.getData();
+                Log.d("ImageUpload", "Selected Image URI: " + imageUri);
 
-                // 이미지 업로드 시작
-                if (taskUpload != null && taskUpload.getStatus() == AsyncTask.Status.RUNNING) {
-                    taskUpload.cancel(true);
+                try {
+                    selectedBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
+                    imgView.setImageBitmap(selectedBitmap);
+
+                    // 이미지 업로드 시작
+                    if (taskUpload != null && taskUpload.getStatus() == AsyncTask.Status.RUNNING) {
+                        taskUpload.cancel(true);
+                    }
+                    taskUpload = new PutPost(selectedBitmap);
+                    taskUpload.execute(site_url + "/api_root/Post/");
+
+                } catch (IOException e) {
+                    Log.e("ImageUpload", "Error converting URI to Bitmap", e);
+                    Toast.makeText(this, "이미지 선택 오류", Toast.LENGTH_SHORT).show();
                 }
-                taskUpload = new PutPost(selectedBitmap);
-                taskUpload.execute(site_url + "/api_root/Post/");
-            } catch (IOException e) {
-                e.printStackTrace();
-                Toast.makeText(this, "이미지 선택 오류", Toast.LENGTH_SHORT).show();
+            } else if (resultCode == RESULT_CANCELED) {
+                Log.e("ImageUpload", "Image selection was canceled by the user or system.");
+                Toast.makeText(this, "이미지 선택이 취소되었습니다.", Toast.LENGTH_SHORT).show();
+            } else {
+                Log.e("ImageUpload", "Unknown error during image selection.");
+                Toast.makeText(this, "이미지 선택 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == 100) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "권한이 허용되었습니다.", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "권한이 거부되었습니다. 이미지 업로드가 불가능합니다.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
     // MainActivity.java
 
     private class CloadImage extends AsyncTask<String, Integer, List<Post>> {
