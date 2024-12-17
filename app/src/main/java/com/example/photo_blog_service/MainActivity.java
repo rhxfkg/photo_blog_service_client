@@ -187,6 +187,12 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    public void onClickCategory(View view) {
+        Intent intent = new Intent(this, CategoryActivity.class);
+        startActivity(intent);
+    }
+
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         Log.d("onActivityResult", "requestCode: " + requestCode + ", resultCode: " + resultCode);
@@ -237,7 +243,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-    // MainActivity.java
 
     private class CloadImage extends AsyncTask<String, Integer, List<Post>> {
         @Override
@@ -276,6 +281,15 @@ public class MainActivity extends AppCompatActivity {
                         int postId = postJson.getInt("id");
                         String title = postJson.optString("title", ""); // JSON에서 title 추출
                         String text = postJson.optString("text", "");  // JSON에서 text 추출
+                        // tags 필드 추출
+                        JSONArray tagsJsonArray = postJson.optJSONArray("tags");
+                        List<String> tags = new ArrayList<>();
+                        if (tagsJsonArray != null) {
+                            for (int j = 0; j < tagsJsonArray.length(); j++) {
+                                tags.add(tagsJsonArray.getString(j));
+                            }
+                        }
+                        Log.d("Check Tag", String.valueOf(tags));
                         Log.d("Updated Image URL1", "imageUrl: " + imageUrl + ", length: " + imageUrl.length());
 
                         if (!imageUrl.isEmpty()) {
@@ -288,7 +302,7 @@ public class MainActivity extends AppCompatActivity {
 
                             Bitmap imageBitmap = BitmapFactory.decodeStream(imgStream);
 
-                            postList.add(new Post(postId, imageBitmap, title, text, isFavorited));
+                            postList.add(new Post(postId, imageBitmap, title, text, isFavorited, tags));
                             imgStream.close();
                         }
                     }
