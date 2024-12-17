@@ -33,6 +33,7 @@
         <activity android:name=".EditActivity" />
         <activity android:name=".SearchResultsActivity" />
         <activity android:name=".CategoryActivity" />
+        <activity android:name=".FilteredImagesActivity" />
 
     </application>
 

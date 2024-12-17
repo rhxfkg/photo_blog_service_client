@@ -1,5 +1,6 @@
 package com.example.photo_blog_service;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -47,8 +48,10 @@ public class CategoryActivity extends AppCompatActivity {
                 String selectedCategory = categories[position];
                 Toast.makeText(CategoryActivity.this, "선택된 카테고리: " + selectedCategory, Toast.LENGTH_SHORT).show();
 
-                // 선택된 카테고리를 메인 화면에 전달하거나 처리
-                // finish()를 호출하면 현재 화면이 종료되고 메인 화면으로 돌아갑니다.
+                // 선택된 카테고리를 메인 화면에 전달
+                Intent resultIntent = new Intent();
+                resultIntent.putExtra("selectedCategory", selectedCategory);
+                setResult(RESULT_OK, resultIntent);
                 finish();
             }
         });

@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.media.Image;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -188,11 +189,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickCategory(View view) {
-        Intent intent = new Intent(this, CategoryActivity.class);
-        startActivity(intent);
+        Intent intent = new Intent(MainActivity.this, CategoryActivity.class);
+        startActivityForResult(intent, 100); // 100은 요청 코드입니다.
     }
 
+    private void filterImagesByCategory(String category) {
+        // 서버에서 가져온 이미지 리스트를 필터링
+        List<Post> filteredImages = new ArrayList<>();
+        for (Post post : postList) { // imageList는 서버에서 가져온 전체 이미지 목록입니다.
+            if (post.getTags().contains(category)) { // 이미지의 태그와 선택된 카테고리 비교
+                filteredImages.add(post);
+            }
+        }
 
+        // 필터링된 이미지를 새로운 Activity로 전달
+        Intent intent = new Intent(MainActivity.this, FilteredImagesActivity.class);
+        intent.putParcelableArrayListExtra("filteredImages", new ArrayList<>(filteredImages));
+        startActivity(intent);
+    }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         Log.d("onActivityResult", "requestCode: " + requestCode + ", resultCode: " + resultCode);
@@ -201,7 +215,6 @@ public class MainActivity extends AppCompatActivity {
 
         if (requestCode == PICK_IMAGE_REQUEST) {
             Log.d("onActivityResult", "requestCode: " + requestCode + ", resultCode: " + resultCode);
-            if (data == null) Log.d("AA", "BB");
             if (resultCode == RESULT_OK && data != null && data.getData() != null) {
                 Uri imageUri = data.getData();
                 Log.d("ImageUpload", "Selected Image URI: " + imageUri);
@@ -227,6 +240,14 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 Log.e("ImageUpload", "Unknown error during image selection.");
                 Toast.makeText(this, "이미지 선택 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        // **새로 추가된 코드: CategoryActivity 결과 처리**
+        if (requestCode == 100 && resultCode == RESULT_OK) {
+            String selectedCategory = data.getStringExtra("selectedCategory");
+            if (selectedCategory != null) {
+                filterImagesByCategory(selectedCategory);
             }
         }
     }
